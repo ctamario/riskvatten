@@ -1,0 +1,55 @@
+# WP1: Fish species and vulnerable populations
+
+## Background
+
+"we will identify relevant and target species within each watercourse. This will be done by the combination of information from the electro fishing database (SERS), the test fishing database (NORS), as well as the Species observation system database (Artportalen), all available at SLU. In addition, the County Boards will be consulted about the fish fauna in their respective counties. When a comprehensive understanding about the fish fauna in the different watercourses has been produced, additional information about vulnerability of different species/populations will be added as an additional datasheet."
+
+## Att göra
+
+```{r packages, message = F, eval=F}
+
+library(pacman)
+
+p_load(tidyr, sf, rgbif, ggplot2, rnaturalearth, rnaturalearthdata, stringr, zoo, magick, giscoR, mapview)
+
+
+```
+
+
+```{r}
+# Taxonkey for brown trout: 8215487
+
+gbif_data <- occ_data(scientificName = "Salmo trutta", hasCoordinate = T,
+                      country = c("SE"), limit = 5000)
+
+trutta <- gbif_data$data
+
+table(trutta$datasetName)
+
+```
+
+
+
+
+```{r}
+
+trutta
+
+table(!is.na(gbif_data_total$decimalLongitude))
+table(!is.na(gbif_data_total$decimalLatitude)) # check for occurrences without coordinates
+
+gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLongitude),]
+gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLatitude),] # remove occurrences without coordinates
+
+gbif_data_total <- gbif_data_total %>% dplyr::filter(as.numeric(year) >= 1990)
+
+
+
+```
+
+
+
+
+
+
+

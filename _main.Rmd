@@ -1,0 +1,101 @@
+--- 
+title: "Riskvatten"
+author: "Carl Tamario"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [book.bib, packages.bib]
+# url: your book url like https://bookdown.org/yihui/bookdown
+# cover-image: path to the social sharing image like images/cover.jpg
+description: |
+  Ett arbetsutkast för projektet Riskvatten.
+link-citations: yes
+github-repo: rstudio/bookdown-demo
+---
+
+# Introduktion/bakgrund {-}
+
+Det här är arbetsutkastet för projektet Riskvatten som innehåller sex arbetspaket.
+
+<!--chapter:end:index.Rmd-->
+
+# WP1: Fish species and vulnerable populations
+
+## Background
+
+"we will identify relevant and target species within each watercourse. This will be done by the combination of information from the electro fishing database (SERS), the test fishing database (NORS), as well as the Species observation system database (Artportalen), all available at SLU. In addition, the County Boards will be consulted about the fish fauna in their respective counties. When a comprehensive understanding about the fish fauna in the different watercourses has been produced, additional information about vulnerability of different species/populations will be added as an additional datasheet."
+
+## Att göra
+
+```{r packages, message = F, eval=F}
+
+library(pacman)
+
+p_load(tidyr, sf, rgbif, ggplot2, rnaturalearth, rnaturalearthdata, stringr, zoo, magick, giscoR, mapview)
+
+
+```
+
+
+```{r}
+#world <- ne_countries(scale = "medium", returnclass = "sf") #Load the background map
+
+# Broken polygons with the above method. See new method below, works fine. 
+#https://gis.stackexchange.com/questions/469267/ggplot-and-sf-package-broken-polygons-after-projection
+
+world.sf <- gisco_get_countries(region = c("Asia", "Europe", "Africa"))
+
+world  <- st_cast(world.sf, 'MULTILINESTRING') %>%
+  st_cast('LINESTRING', do_split=T) %>%
+  dplyr::mutate(npts = npts(geometry, by_feature = T)) %>%
+  st_cast('POLYGON')
+```
+
+<!--chapter:end:01-species_and_pops.Rmd-->
+
+# WP2: Chemical pollution
+
+## Background
+
+Hej
+
+<!--chapter:end:02-chemical_pollution.Rmd-->
+
+# WP3: Fish health (relevant diseases and syndromes)
+
+## Background
+
+Hej
+
+<!--chapter:end:03-fish_health.Rmd-->
+
+# WP4: Hydropower activities
+
+## Background
+
+Hej
+
+<!--chapter:end:04-hydropower_activities.Rmd-->
+
+# WP5: Invasive species
+
+## Background
+
+Hej
+
+<!--chapter:end:05-invasive_species.Rmd-->
+
+# WP6: Overall risk assessment
+
+## Background
+
+Hej
+
+<!--chapter:end:06-overall_risk_assessment.Rmd-->
+
+`r if (knitr::is_html_output()) '
+# References {-}
+'`
+
+<!--chapter:end:07-references.Rmd-->
+
