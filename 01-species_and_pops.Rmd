@@ -6,50 +6,282 @@
 
 ## Att göra
 
-```{r packages, message = F, eval=F}
+Jag vill nu göra ett lager med förekomst av öring, men inte endast utifrån "punkter på en karta", utan utifrån *fragment* där öring bör finnas. Dessa fragment skapar jag utifrån ett lager med alla vandringshinder. 
+
+```{r packages, message = F}
 
 library(pacman)
 
-p_load(tidyr, sf, rgbif, ggplot2, rnaturalearth, rnaturalearthdata, stringr, zoo, magick, giscoR, mapview)
+p_load(tidyr, dplyr, sf, rgbif, ggplot2, stringr, leaflet, haven)
 
 
 ```
 
 
-```{r}
+```{r, eval = F, include = F}
 # Taxonkey for brown trout: 8215487
 
-gbif_data <- occ_data(scientificName = "Salmo trutta", hasCoordinate = T,
-                      country = c("SE"), limit = 5000)
+# gbif_data <- occ_data(scientificName = "Salmo trutta", hasCoordinate = T,
+#                       country = c("SE"), limit = 5000)
+# 
+# trutta <- gbif_data$data
+# 
+# table(trutta$datasetName)
+# 
+# trutta
+# 
+# table(!is.na(gbif_data_total$decimalLongitude))
+# table(!is.na(gbif_data_total$decimalLatitude)) # check for occurrences without coordinates
+# 
+# gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLongitude),]
+# gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLatitude),] # remove occurrences without coordinates
+# 
+# gbif_data_total <- gbif_data_total %>% dplyr::filter(as.numeric(year) >= 1990)
 
-trutta <- gbif_data$data
-
-table(trutta$datasetName)
 
 ```
 
+```{r, eval = F, include = F}
+# p_load(readr)
+# 
+# clipboard()
+```
+
+```{r, eval = F, include = F}
+# 
+# df_sers <- read.csv("data/rawdata_20220707.csv", sep = ";", dec = ",")
+# 
+# head(df_sers)
+# 
+# df_sers %>% dplyr::select(ÖRKLASS_mean)
 
 
+```
+
+## SERS Elfiskeregistret
+
+Ladda in rådata och gör en ren fil med endast platsangivelse (i flera koordinatsystem) och närvaro/saknad (presence/absenc) för alla arter som är påträffade i elfiskeregistret. Här nedan kör vi bara på elfiskeregistret.
 
 ```{r}
 
-trutta
-
-table(!is.na(gbif_data_total$decimalLongitude))
-table(!is.na(gbif_data_total$decimalLatitude)) # check for occurrences without coordinates
-
-gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLongitude),]
-gbif_data_total <- gbif_data_total[!is.na(gbif_data_total$decimalLatitude),] # remove occurrences without coordinates
-
-gbif_data_total <- gbif_data_total %>% dplyr::filter(as.numeric(year) >= 1990)
 
 
+# Read the SPSS .sav file into a data frame
+df_sers_all <- read_sav("D:/rawdata/SAMMANFO_TOT1_VIX_MORF-2022_calle.SAV")
+
+# Replace all occurrences of -9 in the data frame with NA (missing values)
+df_sers_all2 <- df_sers_all %>% dplyr::mutate(across(everything(), ~ifelse(. == -9, NA, .)))
+
+# Set df as the cleaned data frame
+df <- df_sers_all2
+
+# Create a base data frame by selecting specific columns from df
+basefile <- df %>% select(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong, ARTANTAL)# %>% summarise(Öring_present = ceiling(mean(Öring0 + Öring)/10000))
+
+# Extract species-related columns from df based on column names that contain "KLAS"
+df_species <- df[,which(str_detect(names(df), "KLAS"))]
+
+# Read a CSV file containing species information
+sp_list <- read.csv("C:/Users/caio0001/Documents/git/riskvatten/data/Artlista_SERS.csv", sep = ";", fileEncoding = "Latin1")
+
+# Rename columns in df_species to Swedish species names from sp_list
+names(df_species) <- sp_list$Sp_SWE
+
+# Filter df_species to only include columns where is_species is 1 (indicating a valid species)
+df_species2 <- df_species[,sp_list$is_species == 1]
+
+# Combine the basefile and the filtered species data
+df2 <- cbind(basefile, df_species2)
+
+# Create a new column that lists names of present species
+df2$species_names <- apply(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)], 1, function(x) {
+  # Join names of columns with 1s into a single string, separated by commas
+  paste(names(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)])[which(x == 1)], collapse = ", ")
+})
+
+# Group the data by site and merge unique species names and their counts
+df3 <- df2 %>% group_by(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong) %>% 
+  summarize(
+    # Concatenate unique species names into a single string
+    all_sp = str_c(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))]), collapse = ", "),
+    # Count the number of unique species names
+    no_sp = length(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))])))
+
+df3
+
+
+# Below I was decoding which KLASS column corresponds to which density column
+# Saving it for reference sake.
+ 
+# table(df$SANKLASS, df$Sankr)
+# table(df$REKLASS, df$Regnb0+df$Regnb)
+# table(df$HOKLASS, df$Hosim)
+# 
+# table(df$FLKLASS, df$Flone)
+# table(df$BNKLASS, df$Bäcne)
+# 
+# table(df$BRXÖKLAS, df$Bäcröxör)
+# 
+# table(df$STEKLASS, df$Stesi)
+# table(df$BSKLASS, df$Besim)
+# 
+# table(df$FKKLASS, df$Flodkräf)
+# table(df$SKKLASS, df$Signkräf)
+# table(df$HNKLASS, df$Havne)
+# 
+# table(df$SANKLASS, df$Sankr)
+# table(df$SBKLASS, df$Skrub)
+# table(df$SSKLASS, df$Sanst)
+# table(df$SAKLASS, df$Sarv)
+# 
+# table(df$SMSKLASS, df$Smsmörb)
+# table(df$KRÄKLASS)
+
+# table(df$SPKLASS) #Still unclear!
+
+```
+
+Testa att plotta detta
+
+```{r}
+
+sf_points <- st_as_sf(df3, coords = c("ddlong", "ddlat"), crs = 4326)  # WGS84
+
+leaflet() %>% addProviderTiles("Esri.WorldImagery") %>%
+  addCircleMarkers(data = sf_points, radius = ~ no_sp, stroke = F, color = "red", popup = ~ paste(all_sp))
+
+```
+
+## NORS Sjöfiskeregistret
+
+```{r}
+
+
+library(httr)
+library(jsonlite)
+
+### Step 1: Fetch all HAROs in the database
+url <- "https://dvfisk.slu.se/api/V1/nors/data-aggregerad/huvudavrinningsomraden"
+
+response <- GET(url)
+
+response_content <- content(response, as = "text")
+
+data <- fromJSON(response_content)
+
+# A vector containing all the HAROs
+haros <- data$haroNr
+
+################
+################
+
+### Step 2: Extracting data from NORS
+
+# API URL
+url <- "https://dvfisk.slu.se/api/V1/nors/data-aggregerad/rapport"
+
+## Creating the first dataframe to prepare for looping over all HAROs
+
+# initiate the parameter with the first HARO with samples
+params <- list(HaroNr = haros[2])
+
+# Make the GET request
+response <- GET(url, query = params)
+
+NORS_extract <- fromJSON(content(response, "text"))
+
+## Loop over all HAROs to extract data for all lakes in Sweden
+
+for(i in 3:length(haros)){
+  
+  # Looping over HARO
+  params <- list(HaroNr = haros[i]) 
+  
+  # Make the GET request
+  response <- GET(url, query = params)
+  
+  if (status_code(response) == 200) {
+    # Extract content as text
+    new_content <- fromJSON(content(response, "text"))
+    
+    # Print the content
+    #print(content)
+  } else {
+    # Print an error message if the request failed
+    print(paste("Request failed with status code:", status_code(response)))
+  }
+  
+  if(nrow(new_content > 0)){
+    NORS_extract <- rbind(NORS_extract, new_content)
+  }
+  
+}
+
+head(NORS_extract)
 
 ```
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# Koppla samman till vattenförekomster
+
+Ladda nu även in vattendragsdata.
+
+
+```{r, include = F}
+
+# p_load(leaflet)
+# 
+# #rivers <- read_sf("data/vd_l_2016_3.shp")
+# rivers <- read_sf("data/vd_l_2016_3_RivEX.shp")
+# 
+# rivers <- rivers[rivers$Strahler > 3,]
+# 
+# rivers_wgs <- st_transform(rivers, crs = st_crs(4326))
+# 
+# leaflet() %>% addProviderTiles("Esri.WorldImagery") %>% addPolylines(data = rivers_wgs)
+
+```
+
+Leaflet verkar så segt. Jag kan inte ladda en leaflet med alla vattendrag, och jag lyckas heller inte göra en lösning som bara renderar vattendragslinjer under vissa zoom-omständigheter. Jag tror att det som jag måste göra är att jobba i GIS och skapa statiska kartbilder. Drömmen om interaktiva kartor kanske måste dö. 
+
+
+
+```{r, include = F}
+
+
+# library(dplyr)
+# library(stringr)
+# 
+# # Sample data frame with multiple strings per Value
+# df123 <- data.frame(
+#   Group = c("A", "A", "B", "B", "C"),
+#   Value = c("apple, banana", "apple, banana", "", "carrot, date", "eggplant")
+# )
+# 
+# # Aggregating by group and ensuring unique entries
+# result123 <- df123 %>%
+#   group_by(Group) %>%
+#   summarise(Concatenated = str_c(unique(unlist(str_split(Value, ",\\s*")))[nzchar(unique(unlist(str_split(Value, ",\\s*"))))], collapse = ", "))
+# 
+# # View the result
+# print(result123)
+
+
+
+```
 
 
 
