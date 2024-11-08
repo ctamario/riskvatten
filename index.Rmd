@@ -13,6 +13,6 @@ link-citations: yes
 github-repo: rstudio/bookdown-demo
 ---
 
-# Introduktion/bakgrund {-}
+# Introduction/background {-}
 
-Det här är arbetsutkastet för projektet Riskvatten som innehåller sex arbetspaket.
+A working documents for the project Waters at Risk.

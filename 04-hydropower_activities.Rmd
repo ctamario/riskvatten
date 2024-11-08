@@ -12,8 +12,6 @@
 
 Unfortunately, no information can be retrieved from the Swedish Agency for Marine and Water Management (HaV) due to classified information. Anders Skarstedt, which is our contact person at HaV for this project, is not able to give us information on what objects are included in the National plan. 
 
-VISS contains "connectivity assessments" which range from XXX to YYY for HOW MANY OF THE WATER OCCURRENCES? This measurement is based on the difference on what anadromous fish species *should* be there and which actualyl are present. Therefore it's not a measurement that bears any information about real connectivity, but instead *infers* connectivity based on the presence and absence of migrating species (REF).
-
 Other databases with barrier data include: (i) the Barrier database (Vandringshinderdatabasen; Länsstyrelserna), (ii) SMHI dam registry (Dammregistret; Swedish Meteorological and Hydrological Institute), and (iii) Measures in water (Åtgärder i Vatten; Länsstyrelserna). All three databases include information not available in the other three, and are thus necessary compliments to each other. 
 
 ### How to proceed
