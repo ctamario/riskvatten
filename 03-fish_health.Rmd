@@ -139,7 +139,10 @@ kable(head(odl, n = 50)[c(1,2,3,4,5,6,18)], "html") %>%
 
 **Recommended actions**:
 
-**Data availability on Swedish occurrence**: YES, awaiting login to the database.
+**Data availability on Swedish occurrence**: YES.
+
+
+
 
 ## Gyrodactylus salaris?
 
