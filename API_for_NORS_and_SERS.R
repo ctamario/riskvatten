@@ -28,7 +28,7 @@ url <- "https://dvfisk.slu.se/api/V1/nors/data-aggregerad/rapport"
 params <- list(HaroNr = haros[2])
 
 # Make the GET request
-response <- GET(url, query = params)
+response <- GET(url)
 
 NORS_extract <- fromJSON(content(response, "text"))
 

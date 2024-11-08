@@ -3,4 +3,166 @@
 ## Background
 
 
+>In the health WP, species associated with relevant diseases, bacteria and viruses will be identified together with routes of transmission. This work entails review of literature from ongoing monitoring on fish health (on wild as well as reared fish, SVA, SLU, GU) as well as an overview of current research. When a comprehensive understanding about the fish health in the different watercourses has been produced, additional information about vulnerability of different species/populations will be added as an additional datasheet.
+
+
+## Reported finds to SVA 
+(Inrapporterade fynd till SVA)
+
+**Mail från Charlotte Axén** (2024-05-08):
+
+> Kartan kan filtreras på år och fiskgrupp (ex laxfiskar). Under kartan finns en tabell över fyndplatser. Vad som rapporterats (ex svamp) framgår inte, men ni kan räkna med att i princip allt som rapporteras från september till jan-feb är svamp, med undantag för fjällsjöarna vintertid där det kommer en del rapporter om parasitangrepp på pimplad fisk. Sen kan man inte lita på att de rapporter vi får in ger en helhetsbild. Det finns säkert ett antal fler vattendrag som är drabbade men folk vet inte var de ska rapportera eller bryr sig inte om att rapportera, och en rapport speglar inte hur kraftigt angreppet är.
+
+Det vill säga:
+
+- **Mellan september och februari**: Svamp
+- **Övrigt tid**: Okänt?
+
+
+```{r echo = F, fig.width=10, fig.height=10}
+
+SVA <- readxl::read_excel("data/Rapportera_fisk_SVA.xlsx")
+
+SVA <- SVA[complete.cases(SVA$Lat),]
+
+SVA_sf <- st_as_sf(SVA, coords = c("Long", "Lat"), crs = 4326)
+
+SVA_sf$month <- as.numeric(format(SVA_sf$Datum, "%m"))
+
+SVA_sf$season <- "mar-aug"
+
+SVA_sf$season[which(SVA_sf$month > 8 | SVA_sf$month < 3)] <- "sep-feb"
+
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+               "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+
+pal <- colorFactor(
+  palette = cbPalette[1:length(unique(SVA_sf$season))],
+  domain = SVA_sf$season
+)
+
+
+leaflet() %>% addTiles() %>% 
+  addCircleMarkers(data = SVA_sf, 
+                   radius = 3, popup = ~paste0("<b>Fiskgrupp:</b>", Fiskgrupp, "<br>",
+                                               "<b>Vattensystem:</b>", Vattensystem),
+                   color=~pal(season)) %>%
+    addLegend(
+    position = "bottomright",
+    colors = c("#E69F00", "#56B4E9"),     # Colors for each group
+    labels = c("mar-aug", "sep-feb"),       # Labels for each group
+    title = "Season",                 # Title for the legend
+    opacity = 1
+  )
+
+#kable(head(SVA, n = 50)) %>% kable_styling("striped") %>% scroll_box(width = "100%", height="100%")
+
+kable(head(SVA, n = 50), "html") %>%
+  kable_styling("striped", full_width = TRUE) %>%
+  scroll_box(width = "100%", height = "300px")
+
+```
+
+
+## Reported outbreaks in fish farms
+(Utbrott i fiskodlingar)
+
+```{r, echo = F, fig.width=10, fig.height=10}
+
+
+odl <- read_excel("data/SLU - Anläggningar och smittämne 240412 .xlsx")
+
+# odl
+
+names(odl) <- str_replace_all(names(odl), " ", "_")
+
+
+# Preparing point data
+#odl_point <- odl[which(str_detect(odl$Koordinater_Vatten_Nord_4, "-")),]
+odl_point_sf <- st_as_sf(odl, coords = c("Koordinater_Vatten_Ost_1", "Koordinater_Vatten_Nord_1"), crs = 3006)
+odl_point_sf_wgs84 <- st_transform(odl_point_sf, crs = 4326)
+
+
+# Preparing polygon data
+# odl_poly <- odl[-which(str_detect(odl$Koordinater_Vatten_Nord_4, "-")),]
+# 
+# # Function to create POLYGON from each set of four points
+# create_polygon <- function(row) {
+#   coords <- matrix(c(as.numeric(row$Koordinater_Vatten_Ost_1), as.numeric(row$Koordinater_Vatten_Nord_1), 
+#                      as.numeric(row$Koordinater_Vatten_Ost_2), as.numeric(row$Koordinater_Vatten_Nord_2), 
+#                      as.numeric(row$Koordinater_Vatten_Ost_3), as.numeric(row$Koordinater_Vatten_Nord_3), 
+#                      as.numeric(row$Koordinater_Vatten_Ost_4), as.numeric(row$Koordinater_Vatten_Nord_4), 
+#                      as.numeric(row$Koordinater_Vatten_Ost_1), as.numeric(row$Koordinater_Vatten_Nord_1)),  # Repeat the first point to close the polygon
+#                    ncol = 2, byrow = TRUE)
+#   st_polygon(list(coords))
+# }
+# 
+# create_polygon(odl_poly[1,])
+# 
+# odl_poly$id <- 1:nrow(odl_poly)
+# 
+# # Apply function to each row and create an sfc (simple features collection) object
+# polygons <- st_sfc(lapply(split(odl_poly, odl_poly$id), create_polygon), crs = 3006)  # Adjust CRS as needed
+# 
+# 
+# polygons_sf <- st_sf(polygons)
+# 
+# polygons_sf_wgs84 <- st_transform(polygons_sf, crs = 4326)
+# 
+# 
+
+
+leaflet() %>% addTiles() %>% 
+  addCircleMarkers(data = odl_point_sf_wgs84 ,
+                 radius = 3, popup = ~paste0("<b>Smittämne: </b>", Smittämne, "<br>",
+                                              "<b>Hälsostatus: </b>", Hälsostatus, "<br>",
+                                              "<b>Anläggningens arter: </b>", Anläggningens_Arter))
+
+
+#kable(head(odl, n = 50)[c(1,2,3,4,5,6,18)]) %>% kable_styling("striped") %>% scroll_box(width = "100%", height="100%")
+
+kable(head(odl, n = 50)[c(1,2,3,4,5,6,18)], "html") %>%
+  kable_styling("striped", full_width = TRUE) %>%
+  scroll_box(width = "200%", height = "300px")
+
+```
+
+
+## Kräftpest?
+
+**Background**: 
+
+**Geographical extent of risk**:
+
+**Potential consequences**: 
+
+**Recommended actions**:
+
+**Data availability on Swedish occurrence**: YES, awaiting login to the database.
+
+## Gyrodactylus salaris?
+
+**Background**: An introduction on the origin and consequences of *Gyrodactylus salaris* is available from [here](https://pub.epsilon.slu.se/10459/7/degerman_e_et_al_130522.pdf) (2012)
+
+**Geographical extent of risk**: On the Swedish west coast. Sensitive to high salinity so fish spreading it across rivers through the ocean is 
+
+**Potential consequences**: 
+
+**Recommended actions**:
+
+**Data availability on Swedish occurrence**: YES, SLU has a database (I have an old version from 2018 on my hard drive.)
+
+```{r gyro_map, echo = F, fig.width=10, fig.height=10}
+
+gyro <- read_excel("data/Gyro_tot_individkoll_20180109_calle.xlsx") %>% dplyr::filter(gyrosalarisförekomst == 1)
+
+gyro_sf <- st_as_sf(gyro, coords = c("swe99TM_E", "swe99TM_N"), crs = 3006)
+
+gyro_sf_wgs84 <- st_transform(gyro_sf, crs = 4326)
+
+leaflet() %>% addTiles() %>% addCircleMarkers(data = gyro_sf_wgs84)
+
+```
+
 

@@ -12,3 +12,7 @@ pre {
 pre code {
   white-space: inherit;
 }
+.leaflet-container {
+    width: 100% !important;
+    height: 600px; /* Adjust height as necessary */
+}

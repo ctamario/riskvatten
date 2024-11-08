@@ -2,18 +2,13 @@
 
 ## Background
 
-"we will identify relevant and target species within each watercourse. This will be done by the combination of information from the electro fishing database (SERS), the test fishing database (NORS), as well as the Species observation system database (Artportalen), all available at SLU. In addition, the County Boards will be consulted about the fish fauna in their respective counties. When a comprehensive understanding about the fish fauna in the different watercourses has been produced, additional information about vulnerability of different species/populations will be added as an additional datasheet."
+> In the fish WP, we will identify relevant and target species within each watercourse. This will be done by the combination of information from the electro fishing database (SERS), the test fishing database (NORS), as well as the Species observation system database (Artportalen), all available at SLU. In addition, the County Boards will be consulted about the fish fauna in their respective counties. When a comprehensive understanding about the fish fauna in the different watercourses has been produced, additional information about vulnerability of different species/populations will be added as an additional datasheet. The vulnerability assessment will largely be based on the Swedish Red list and County Board information about vulnerable populations including occurrence of freshwater pearl pussel. In addition, information about protected and valuable areas (Natura 2000, Nyckelbiotoper) will contribute to the overall assessment of vulnerability.
 
-## Att göra
-
-Jag vill nu göra ett lager med förekomst av öring, men inte endast utifrån "punkter på en karta", utan utifrån *fragment* där öring bör finnas. Dessa fragment skapar jag utifrån ett lager med alla vandringshinder. 
-
-```{r packages, message = F}
+```{r packages, echo = F, message = F}
 
 library(pacman)
 
-p_load(tidyr, dplyr, sf, rgbif, ggplot2, stringr, leaflet, haven)
-
+p_load(tidyr, dplyr, sf, rgbif, ggplot2, stringr, leaflet, haven, readxl, knitr, kableExtra)
 
 ```
 
@@ -58,56 +53,53 @@ p_load(tidyr, dplyr, sf, rgbif, ggplot2, stringr, leaflet, haven)
 
 ```
 
-## SERS Elfiskeregistret
 
-Ladda in rådata och gör en ren fil med endast platsangivelse (i flera koordinatsystem) och närvaro/saknad (presence/absenc) för alla arter som är påträffade i elfiskeregistret. Här nedan kör vi bara på elfiskeregistret.
-
-```{r}
-
-
-
-# Read the SPSS .sav file into a data frame
-df_sers_all <- read_sav("D:/rawdata/SAMMANFO_TOT1_VIX_MORF-2022_calle.SAV")
-
-# Replace all occurrences of -9 in the data frame with NA (missing values)
-df_sers_all2 <- df_sers_all %>% dplyr::mutate(across(everything(), ~ifelse(. == -9, NA, .)))
-
-# Set df as the cleaned data frame
-df <- df_sers_all2
-
-# Create a base data frame by selecting specific columns from df
-basefile <- df %>% select(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong, ARTANTAL)# %>% summarise(Öring_present = ceiling(mean(Öring0 + Öring)/10000))
-
-# Extract species-related columns from df based on column names that contain "KLAS"
-df_species <- df[,which(str_detect(names(df), "KLAS"))]
-
-# Read a CSV file containing species information
-sp_list <- read.csv("C:/Users/caio0001/Documents/git/riskvatten/data/Artlista_SERS.csv", sep = ";", fileEncoding = "Latin1")
-
-# Rename columns in df_species to Swedish species names from sp_list
-names(df_species) <- sp_list$Sp_SWE
-
-# Filter df_species to only include columns where is_species is 1 (indicating a valid species)
-df_species2 <- df_species[,sp_list$is_species == 1]
-
-# Combine the basefile and the filtered species data
-df2 <- cbind(basefile, df_species2)
-
-# Create a new column that lists names of present species
-df2$species_names <- apply(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)], 1, function(x) {
-  # Join names of columns with 1s into a single string, separated by commas
-  paste(names(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)])[which(x == 1)], collapse = ", ")
-})
-
-# Group the data by site and merge unique species names and their counts
-df3 <- df2 %>% group_by(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong) %>% 
-  summarize(
-    # Concatenate unique species names into a single string
-    all_sp = str_c(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))]), collapse = ", "),
-    # Count the number of unique species names
-    no_sp = length(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))])))
-
-df3
+```{r include = F}
+# Ladda in rådata och gör en ren fil med endast platsangivelse (i flera koordinatsystem) och närvaro/saknad (presence/absenc) för alla arter som är påträffade i elfiskeregistret. Här nedan kör vi bara på elfiskeregistret.
+# 
+# 
+# # Read the SPSS .sav file into a data frame
+# df_sers_all <- read_sav("D:/rawdata/SAMMANFO_TOT1_VIX_MORF-2022_calle.SAV")
+# 
+# # Replace all occurrences of -9 in the data frame with NA (missing values)
+# df_sers_all2 <- df_sers_all %>% dplyr::mutate(across(everything(), ~ifelse(. == -9, NA, .)))
+# 
+# # Set df as the cleaned data frame
+# df <- df_sers_all2
+# 
+# # Create a base data frame by selecting specific columns from df
+# basefile <- df %>% select(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong, ARTANTAL)# %>% summarise(Öring_present = ceiling(mean(Öring0 + Öring)/10000))
+# 
+# # Extract species-related columns from df based on column names that contain "KLAS"
+# df_species <- df[,which(str_detect(names(df), "KLAS"))]
+# 
+# # Read a CSV file containing species information
+# sp_list <- read.csv("C:/Users/caio0001/Documents/git/riskvatten/data/Artlista_SERS.csv", sep = ";", fileEncoding = "Latin1")
+# 
+# # Rename columns in df_species to Swedish species names from sp_list
+# names(df_species) <- sp_list$Sp_SWE
+# 
+# # Filter df_species to only include columns where is_species is 1 (indicating a valid species)
+# df_species2 <- df_species[,sp_list$is_species == 1]
+# 
+# # Combine the basefile and the filtered species data
+# df2 <- cbind(basefile, df_species2)
+# 
+# # Create a new column that lists names of present species
+# df2$species_names <- apply(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)], 1, function(x) {
+#   # Join names of columns with 1s into a single string, separated by commas
+#   paste(names(df2[,seq(from=ncol(basefile)+1, to=ncol(df2), by=1)])[which(x == 1)], collapse = ", ")
+# })
+# 
+# # Group the data by site and merge unique species names and their counts
+# df3 <- df2 %>% group_by(XKOORLOK, YKOORLOK, vdragnam, s99tm_n, s99tm_e, ddlat, ddlong) %>% 
+#   summarize(
+#     # Concatenate unique species names into a single string
+#     all_sp = str_c(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))]), collapse = ", "),
+#     # Count the number of unique species names
+#     no_sp = length(unique(unlist(str_split(species_names, ", "))[nzchar(unique(unlist(str_split(species_names, ", "))))])))
+# 
+# df3
 
 
 # Below I was decoding which KLASS column corresponds to which density column
@@ -141,103 +133,329 @@ df3
 
 ```
 
-Testa att plotta detta
 
-```{r}
+```{r, include = F}
 
-sf_points <- st_as_sf(df3, coords = c("ddlong", "ddlat"), crs = 4326)  # WGS84
-
-leaflet() %>% addProviderTiles("Esri.WorldImagery") %>%
-  addCircleMarkers(data = sf_points, radius = ~ no_sp, stroke = F, color = "red", popup = ~ paste(all_sp))
+# Testa att plotta detta
+# sf_points <- st_as_sf(df3, coords = c("ddlong", "ddlat"), crs = 4326)  # WGS84
+# 
+# leaflet() %>% addProviderTiles("Esri.WorldImagery") %>%
+#   addCircleMarkers(data = sf_points, radius = ~ no_sp, stroke = F, color = "red", popup = ~ paste(all_sp))
 
 ```
 
-## NORS Sjöfiskeregistret
+## Fish occurrences from NORS and SERS 
 
-```{r}
+Fish species occurrence in rivers and lakes was acquired from the API for databases SERS (electrofishing registry) and NORS (lake fishing registry) available at SLU (https://dvfisk.slu.se/home). 
 
-
+```{r load_API_packages, echo = F}
 library(httr)
 library(jsonlite)
+```
 
-### Step 1: Fetch all HAROs in the database
-url <- "https://dvfisk.slu.se/api/V1/nors/data-aggregerad/huvudavrinningsomraden"
 
-response <- GET(url)
-
-response_content <- content(response, as = "text")
-
-data <- fromJSON(response_content)
-
-# A vector containing all the HAROs
-haros <- data$haroNr
-
-################
-################
-
-### Step 2: Extracting data from NORS
-
+```{r, echo = F}
 # API URL
 url <- "https://dvfisk.slu.se/api/V1/nors/data-aggregerad/rapport"
 
-## Creating the first dataframe to prepare for looping over all HAROs
-
-# initiate the parameter with the first HARO with samples
-params <- list(HaroNr = haros[2])
-
 # Make the GET request
-response <- GET(url, query = params)
+response <- GET(url)
 
 NORS_extract <- fromJSON(content(response, "text"))
+```
 
-## Loop over all HAROs to extract data for all lakes in Sweden
+### NORS
 
-for(i in 3:length(haros)){
-  
-  # Looping over HARO
-  params <- list(HaroNr = haros[i]) 
-  
-  # Make the GET request
-  response <- GET(url, query = params)
-  
-  if (status_code(response) == 200) {
-    # Extract content as text
-    new_content <- fromJSON(content(response, "text"))
-    
-    # Print the content
-    #print(content)
-  } else {
-    # Print an error message if the request failed
-    print(paste("Request failed with status code:", status_code(response)))
-  }
-  
-  if(nrow(new_content > 0)){
-    NORS_extract <- rbind(NORS_extract, new_content)
-  }
-  
-}
+The data files contains for each sampled lake/river summaries of which fish species are caught, the first and last sampling year, how many times it has been sampled, CPUE, the most common caught species, and more. The database contains 4176 sampled lakes. A map of all sampled lakes (and the species which are caught) can be found below. 
 
-head(NORS_extract)
+```{r echo = F}
+#create a column (nsp) for number of species
+NORS_extract$nsp <- str_count(NORS_extract$fångadeArter, ",") + 1
+
+```
+
+
+```{r echo = F, fig.width=10, fig.height=10}
+# Convert sweref99N and sweref99E to WGS84 coordinates for plotting in a leaflet.
+
+NORS_sf <- st_as_sf(NORS_extract, coords = c("sweref99E", "sweref99N"), crs = 3006)
+
+NORS_sf_wgs84 <- st_transform(NORS_sf, crs = 4326)
+
+NORS_sf_wgs84$long <- st_coordinates(NORS_sf_wgs84)[, "X"]
+NORS_sf_wgs84$lat <- st_coordinates(NORS_sf_wgs84)[, "Y"]
+
+leaflet(data = NORS_sf_wgs84) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~long, lat = ~lat, radius = ~ log(nsp + 1), stroke = F, color = "blue", popup = ~ paste0("<b>Caught species: </b>", fångadeArter, "<br>",
+                                                                                                                  "<b>Water: </b>", sjö))
+
+```
+*Map 1* A map of all the lake fishing sites in Sweden. There are `r nrow(NORS_sf)` sampled locations. The size of the point is proportional to the number of species caught. Click on the point to get the species list (in Swedish) and the name of the water body.
+
+
+```{r echo = F, include = F}
+
+# NORS_extract$trout_present <- str_detect(NORS_extract$fångadeArter, "Öring")
+
+# leaflet(data = NORS_sf_wgs84 %>% filter(NORS_extract$trout_present == T)) %>%
+#   addTiles() %>%
+#   addCircleMarkers(lng = ~long, lat = ~lat, stroke = F, color = "blue", popup = ~ paste(fångadeArter))
+
+```
+
+### SERS
+
+```{r echo = F}
+
+# API URL
+url <- "https://dvfisk.slu.se/api/V1/sers/data-aggregerad/rapport"
+
+## Creating the first dataframe to prepare for looping over all HAROs
+
+# Make the GET request
+response <- GET(url)
+
+SERS_extract <- fromJSON(content(response, "text"))
+
+#create a column (nsp) for number of species
+SERS_extract$nsp <- str_count(SERS_extract$arter, ",") + 1
+
+#There are data from 23322 electrofishing sites in Sweden. 
+```
+
+
+```{r, echo = F, fig.width=10, fig.height=10}
+
+SERS_sf <- st_as_sf(SERS_extract, coords = c("sweref99E", "sweref99N"), crs = 3006)
+
+SERS_sf_wgs84 <- st_transform(SERS_sf, crs = 4326)
+
+SERS_sf_wgs84$long <- st_coordinates(SERS_sf_wgs84)[, "X"]
+SERS_sf_wgs84$lat <- st_coordinates(SERS_sf_wgs84)[, "Y"]
+
+leaflet(data = SERS_sf_wgs84) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~long, lat = ~lat, radius = ~ log(nsp+1), stroke = F, color = "blue",
+                   popup = ~ paste0("<b>Caught species: </b><br>", arter, "<br>",
+                                    "<b>Water: </b><br>", vattendrag))
+
+
+```
+*Map 2* A map of all the electrofishing sites in Sweden. There are `r nrow(SERS_sf)` sampled locations. The size of the point is proportional to the number of species caught. Click on the point to get the species list (in Swedish) and the name of the water body.
+
+### Both databases combined
+
+It is possible to do sub-selections of this data if we need to extract the distribution of particular species, both for problem species (e.g., invasive) or redlisted species.
+
+```{r echo = F, fig.width=10, fig.height=10}
+
+# leaflet(data = SERS_sf_wgs84) %>%
+#   addTiles() %>%
+#   addCircleMarkers(lng = ~long, lat = ~lat, 
+#                    radius = ~ log(nsp+1), stroke = F, 
+#                    color = "orange", popup = ~ paste(arter), group = "SERS") %>%
+#   addCircleMarkers(data = NORS_sf_wgs84, 
+#                    lng = ~long, lat = ~lat, 
+#                    radius = ~ log(nsp+1), stroke = F, 
+#                    color = "blue", popup = ~ paste(fångadeArter), group = "NORS")
+# 
+
+
+
+leaflet() %>%
+  addTiles() %>%
+  
+  # Add SERS group markers in orange
+  addCircleMarkers(
+    data = SERS_sf_wgs84,
+    lng = ~long, lat = ~lat,
+    radius = ~nsp/3, stroke = FALSE,
+    color = "orange", popup = ~ paste0("<b>SERS</b><br>", "<b>Caught species: </b><br>", arter, "<br>",
+                                       "<b>Water: </b><br>", vattendrag), group = "SERS"
+  ) %>%
+  
+  # Add NORS group markers in blue
+  addCircleMarkers(
+    data = NORS_sf_wgs84,
+    lng = ~long, lat = ~lat,
+    radius = ~nsp/3, stroke = FALSE,
+    color = "blue", popup = ~ paste0("<b>NORS</b><br>", "<b>Caught species: </b><br>", fångadeArter, "<br>",
+                                     "<b>Water: </b><br>", sjö), group = "NORS"
+  ) %>%
+  
+  # Add custom legend for the groups
+  addLegend(
+    position = "bottomright",
+    colors = c("orange", "blue"),     # Colors for each group
+    labels = c("SERS", "NORS"),       # Labels for each group
+    title = "Groups",                 # Title for the legend
+    opacity = 1
+  )
+
+
+
+
+
+```
+**Map 3.** Map with both SERS (orange) and NORS (blue) combined. The size of the point is proportional to the number of species caught. Click on the point to get the database origin, the species list (in Swedish), and the name of the water body.
+
+## Redlisted species
+
+A map of the occurrences of the redlisted species with data from both SERS and NORS: 
+
+- aspen (asp) 
+- alpine bullhead (bergsimpa)
+- burbot (lake)
+- European eel (ål)
+- sea lamprey (havsnejonöga)
+- Wels catfish (mal)
+- vimba bream (vimma)
+
+```{r, echo = F, fig.width=10, fig.height=10}
+
+redlisted <- c("Asp", "Bergsimpa", "Lake", "Ål", "Havsnejonöga", "Mal", "Vimma")
+
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+               "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+
+pal <- colorFactor(
+  palette = cbPalette[1:length(unique(redlisted))],
+  domain = redlisted
+)
+
+
+
+SERS_sf_wgs84_asp <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Asp"),]
+NORS_sf_wgs84_asp <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Asp"),]
+
+SERS_sf_wgs84_bergsimpa <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Bergsimpa"),]
+NORS_sf_wgs84_bergsimpa <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Bergsimpa"),]
+
+SERS_sf_wgs84_lake <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Lake"),]
+NORS_sf_wgs84_lake <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Lake"),]
+
+SERS_sf_wgs84_eel <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Ål"),]
+NORS_sf_wgs84_eel <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Ål"),]
+
+SERS_sf_wgs84_havsnejonöga <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Havsnejonöga"),]
+NORS_sf_wgs84_havsnejonöga <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Havsnejonöga"),]
+
+SERS_sf_wgs84_mal <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Mal"),]
+NORS_sf_wgs84_mal <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Mal"),]
+
+SERS_sf_wgs84_vimma <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Vimma"),]
+NORS_sf_wgs84_vimma <- NORS_sf_wgs84[str_detect(NORS_sf_wgs84$fångadeArter, "Vimma"),]
+
+
+
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = SERS_sf_wgs84_asp, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[1]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_asp, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[1]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_bergsimpa, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[2]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_bergsimpa, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[2]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_lake, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[3]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_lake, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[3]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_eel, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[4]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_eel, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[4]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_havsnejonöga, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[5]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_havsnejonöga, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[5]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_mal, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[6]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_mal, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[6]) %>%
+  addCircleMarkers(data = SERS_sf_wgs84_vimma, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[7]) %>%
+  addCircleMarkers(data = NORS_sf_wgs84_vimma, lng = ~long, lat = ~lat, stroke = F, radius = 3, color = cbPalette[7]) %>%
+   addLegend("bottomright",
+            colors = cbPalette[1:7],
+            labels = c("Asp", "Bergsimpa", "Lake", "Eel", "Havsnejonöga", "Mal", "Vimma"),
+            title = "Fish Species",
+            opacity = 1)
+  
+
+
 
 ```
 
 
 
 
+## Freshwater pearl mussel
+
+The endangered freshwater pearl mussel is often regarded as an indicator, keystone and umbrella species. It is present in nutrient-poor, cold, and clear rivers. It has been subject to pearl fishing but it is not so common anymore. It has a parasitic stage that involves the brown trout and/or Atlantic salmon as host species to complete its life cycle. There are about 650 populations in Sweden depending on what one assess to be an "individual population". About half of the populations in Sweden lack recruitment, that is, during inventory of the populations, no mussels smaller than 50 mm were found. It is generally said that mussels reach around 50 mm when they are 20 years old. If there are no small (young) mussels present in the population, something is disturbing the recruitment process, either in the host species or the mussels, or both.
+
+The exact locations of populations is sensitive data because the freshwater pearl mussel have been subject to pearl fishing. To protect the populations we will **only present the river section** where they occur instead of the exact locations. 
+
+```{r, echo = F, fig.width=10, fig.height=10}
+
+fpm_data <- read.csv("data/FPM_superhabitat.csv", sep = ";")
+
+#head(fpm_data)
+
+fpm_sf <- st_as_sf(fpm_data, coords = c("longitude", "latitude"))
+
+fpm_sf$long <- st_coordinates(fpm_sf)[, "X"]
+fpm_sf$lat <- st_coordinates(fpm_sf)[, "Y"]
+
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+               "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+
+fpm_sf$reproducing <- "No recruitment"
+fpm_sf$reproducing[which(fpm_sf$Repr_Calle == 1)] <- "Recruitment"
+fpm_sf$reproducing[which(fpm_sf$Repr_Calle == 2)] <- "Unknown"
+
+pal <- colorFactor(
+  palette = cbPalette[1:length(unique(fpm_sf$reproducing))],
+  domain = fpm_sf$reproducing
+)
+
+
+leaflet(data = fpm_sf) %>% addTiles() %>% 
+  addCircleMarkers(radius = 3, stroke = T, color = ~pal(reproducing), popup = ~ paste0("<b>Status: </b><br>", reproducing)) %>%
+    addLegend(
+    position = "bottomright",
+    colors = c("#E69F00", "#56B4E9", "#009E73"),     # Colors for each group
+    labels = c("No recruitment", "Recruitment", "Unknown"),       # Labels for each group
+    title = "Status",                 # Title for the legend
+    opacity = 1
+  )
+
+```
+
+
+## Connecting point data to river lines 
+
+*(I have been talking about this earlier, points are just points and has to be translated to the "river dimension". However, the interactive map function (called leaflet) used above is very slow when handling the large river network. Therefore we have to go with the approach of static maps.)*
+
+**NEW RIVER LINE DATA AVAILABLE FROM LANTMÄTERIET! Hydrografi i nätverk**
+
+```{r, echo = F, fig.width=8, fig.height=12, out.width='100%', message = F}
+
+rivers <- read_sf("data/vd_l_2016_3_RivEX.shp")
+
+p_load(rnaturalearth)
+
+world_map <- ne_countries(returnclass = "sf",scale = 50)
+
+sweden_map <- world_map %>%
+  dplyr::filter(admin == "Sweden") %>%        # Limit to Sweden
+  st_transform(crs = 3006)             # Transform to Swedish CRS (SWEREF99TM)
+
+#rivers_3006 <- st_transform(rivers, crs=3006)
+
+ggplot() + 
+  geom_sf(data = sweden_map, fill = "white") + 
+  geom_sf(data = rivers %>% dplyr::filter(LINJEKOD != 26, COUNTRY == "SE"), color = "lightgrey") +
+  geom_sf()
+  #geom_sf(data = fpm_3006, color = "chocolate") + 
+  theme_minimal()
+
+```
 
 
 
 
-
-
-
-
-
-
-
-# Koppla samman till vattenförekomster
-
-Ladda nu även in vattendragsdata.
 
 
 ```{r, include = F}
@@ -254,9 +472,6 @@ Ladda nu även in vattendragsdata.
 # leaflet() %>% addProviderTiles("Esri.WorldImagery") %>% addPolylines(data = rivers_wgs)
 
 ```
-
-Leaflet verkar så segt. Jag kan inte ladda en leaflet med alla vattendrag, och jag lyckas heller inte göra en lösning som bara renderar vattendragslinjer under vissa zoom-omständigheter. Jag tror att det som jag måste göra är att jobba i GIS och skapa statiska kartbilder. Drömmen om interaktiva kartor kanske måste dö. 
-
 
 
 ```{r, include = F}

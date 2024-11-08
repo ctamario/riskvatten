@@ -1,5 +1,151 @@
 # WP5: Invasive species
 
+
+
 ## Background
 
-Hej
+> In the Invasive species WP, we will identify distribution of invasive animal species within each watercourse. This will be done by the combination of information from the electro fishing database (SERS), the test fishing database (NORS), as well as the Species observation system database (Artportalen), all available at SLU. In addition, the County Boards will be consulted about the fish fauna in their respective counties. These distributions will be included in the Invasive species GIS-sheet and will be used to improve risk assessment.
+
+
+## Pink salmon
+
+**Background**: Pink salmon (*Oncorhynchus gorbuscha*) was introduced to the Kola Peninsula in Russia in 1956. In 2021, Norway saw an unprecedented occurrence of pink salmon in coastal and freshwater catches. Occurrences in Sweden are still relatively sparse, but also Sweden saw the highest occurrence thus far in 2021 (Staveley & Ahlbeck 2022). There are no reported successful reproductions in Sweden, unlike in Norway and the United Kingdom.
+
+**Geographical extent of risk**: The coastal water zone on the west coast is the most vulnerable, but also around the southern coast (Staveley & Ahlbeck, 2022). 
+
+**Potential consequences**: Pink salmon occur in the river systems at the same time as Atlantic salmon (Salmo salar) and brown trout (S. trutta) and could therefore potentially interfere with their spawning. However, it is not established whether they actually pose a threat to the Atlantic salmon (JONSSON)
+
+**Recommended actions**:
+
+**Data availability on Swedish occurrence**: Yes, up to 2021 (Staveley & Ahlbeck 2022). There are also 16 datapoints without exact geolocation in 
+
+```{r pinksalmon, message = F, echo = F, warning = F, fig.width=10, fig.height=10}
+
+df_pink_salmon <- read.csv("data/Pink_salmon_data_ecologyevolution_2022_2.csv", sep = ";", dec = ",", fileEncoding = "Latin1")
+
+leaflet(data = df_pink_salmon) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~WGS84Long, lat = ~WGS84Lat, stroke = F, color = "blue", 
+                   popup = ~ paste("River:", River, "<br>", "Catch month: ", Month), 
+                   clusterOptions = markerClusterOptions())
+
+
+```
+
+
+## Signal crayfish 
+
+**Background**: The signal crayfish (*Pacifastacus leniusculus*) was introduced to Swedish waters in 1969 as a response to the mortality of the European crayfish (*Astacus astacus*) due to the crayfish plague (*Aphanomyces astaci*). Its origin is northwestern USA and southwestern Canada, and is on the EU list of invasive species. That means that it is forbidden to stock and translocate in nature. It is morphologically very similar to the native European crayfish.
+
+**Geographical extent of risk**: In southern and middle Sweden, up to Dalarna (Siljan), Hälsingland and in a few locations along the Norrland coast. 4000 locations, but with illegal stocking it may be present in more locations. Signal crayfish is now widespread all over Europe. 
+
+**Potential consequences**: Signal crayfish is more aggressive and displaces European crayfish to the shoreline (REF). Coexistence happens but is rare because the signal crayfish often carries the crayfish plague that spreads to its vulnerable European relatives and therefore kills them. The signal crayfish has therefore replaced the European crayfish in many areas. 
+
+**Recommended actions**: The natural movement/spread of signal crayfish is limited due to a low migration propensity.  Individual crayfish are relatively stationary and seldom move over 500 meters within a year. Studies say that their low movement is also due to barriers. This implies that dam removal may allow signal crayfish to spread. The larger problem regarding  is illegal stocking and translocations.
+
+The management program for signal crayfish in Sweden can be [found here](https://www.havochvatten.se/download/18.634a809a16ec3bc3b78cc440/1708680415329/rappport-2019-27-hanteringsprogram-for-signalkrafta.pdf).
+
+**Data availability on Swedish occurrence**: Yes. (All signal crayfish occurrences fetched 2024-10-22; *N* = 18755) https://www.slu.se/institutioner/akvatiska-resurser/databaser/nationella-kraftdatabasen/
+
+```{r crayfish, message = F, echo = F, fig.width=10, fig.height=10}
+
+df_crayfish <- read.csv("data/crayfish_data.csv", sep = ";", dec = ",")
+
+df_crayfish_sf <- st_as_sf(df_crayfish, coords = c("sweref99E", "sweref99N"), crs = 3006)
+
+df_crayfish_sf_wgs84 <- st_transform(df_crayfish_sf, crs = 4326)
+
+df_crayfish_sf_wgs84$long <- st_coordinates(df_crayfish_sf_wgs84)[, "X"]
+df_crayfish_sf_wgs84$lat <- st_coordinates(df_crayfish_sf_wgs84)[, "Y"]
+
+# cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", 
+#                "#0072B2", "#D55E00", "#CC79A7", "#999999")
+# 
+# 
+# pal <- colorFactor(
+#   palette = cbPalette[1:length(unique(df_crayfish_sf_wgs84$Metodik))], 
+#   domain = df_crayfish_sf_wgs84$Metodik
+# ) 
+
+# leaflet(data = df_crayfish_sf_wgs84 %>% filter(Förekomst == "Säker" | Förekomst == "Finns troligen")) %>%
+#   addTiles() %>%
+#   #addCircleMarkers(lng = ~ long, lat = ~ lat, stroke = F, color = "blue", popup = ~ paste(Förekomst, ", ", Metodik), clusterOptions = markerClusterOptions())
+#   addCircleMarkers(lng = ~ long, lat = ~ lat, stroke = F, radius=2, color = ~pal(Metodik),
+#                    popup = ~ paste("Förekomst:", Förekomst, "<br>", "Metodik:", Metodik))  %>%
+#   addLegend(
+#     "bottomright",  # Position of the legend
+#     pal = pal,      # Color palette function
+#     values = ~Metodik, # Group variable for the legend
+#     title = "Metodik",  # Legend title
+#     opacity = 1
+#   )
+
+leaflet(data = df_crayfish_sf_wgs84 %>% filter(Förekomst == "Säker" | Förekomst == "Finns troligen")) %>%
+  addTiles() %>%
+  #addCircleMarkers(lng = ~ long, lat = ~ lat, stroke = F, color = "blue", popup = ~ paste(Förekomst, ", ", Metodik), clusterOptions = markerClusterOptions())
+  addCircleMarkers(lng = ~ long, lat = ~ lat, stroke = F, radius=2,
+                   popup = ~ paste("Förekomst:", Förekomst, "<br>", "Metodik:", Metodik))
+
+
+```
+
+
+## Lake trout
+
+**Background**: Lake trout origins from North America and has been introduced into [110 lakes and reservoirs between 1960 and 1985](https://www.slu.se/institutioner/akvatiska-resurser/forskning/ekosystem/effekter-av-vattenreglering-i-sjoar-och-magasin---fak-aterbesokt/rapportera-kanadaroding/). Reports say that successful reproduction has happened in a few lakes, e.g., [Storsjön and Kallsjön in Jämtland] (https://artfakta.se/taxa/206233/information). 
+
+**Geographical extent of risk**: Lake trout thrives in deep and cold waters of the north. Not many follow-up studies has been done. Johan Östergren is doing a project (FÅK återbesökt) that will map where lake trout was introduced, where it has been reproducing, and what potential consequences there are for biodiversity.
+
+**Potential consequences**: (*What does Östergren study conclude?*)
+
+**Recommended actions**: (*What does Östergrens study conclude?*)
+
+**Data availability on Swedish occurrence**: There is a data-file available from Johan Östergren. **This file will be used in other research papers by Östergren and is sensitive data**. 
+
+```{r, echo = F, fig.width=10, fig.height=10, message = F}
+
+lake_trout <- read.csv("data/Kanadaröding 2021-02-21 till GIS.csv", sep = ";", dec = ",")
+
+#head(lake_trout)
+
+lake_trout_sf <- st_as_sf(lake_trout, coords = c("X", "Y"), crs = 3021)
+
+lake_trout_sf_wgs84 <- st_transform(lake_trout_sf, crs = 4326)
+
+lake_trout_sf_wgs84$long <- st_coordinates(lake_trout_sf_wgs84)[, "X"]
+lake_trout_sf_wgs84$lat <- st_coordinates(lake_trout_sf_wgs84)[, "Y"]
+
+leaflet(data = lake_trout_sf_wgs84) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~ long, lat = ~ lat, stroke = F, radius=~log(Antal..minst. + 50),
+                   popup = ~ paste("Number released (at least): ", Antal..minst., "<br>",
+                                   "Location: ", SNAMN))
+
+#log(lake_trout_sf_wgs84$Antal..minst. + 2)
+
+```
+
+
+## Brook trout
+
+**Background**: 
+
+**Geographical extent of risk**:
+
+**Potential consequences**: 
+
+**Recommended actions**:
+
+**Data availability on Swedish occurrence**: Yes, through SERS and NORS.
+
+```{r, echo = F, fig.width=10, fig.height=10}
+
+SERS_sf_wgs84_brook_trout <- SERS_sf_wgs84[str_detect(SERS_sf_wgs84$arter, "Bäckröding"),]
+
+leaflet(data = SERS_sf_wgs84_brook_trout) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~long, lat = ~lat, radius=1.5, stroke = F, color = "blue")
+
+```
+
+

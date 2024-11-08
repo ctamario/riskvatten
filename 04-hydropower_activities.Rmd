@@ -2,4 +2,74 @@
 
 ## Background
 
-Hej
+> Information about hydropower activities will be retrieved from the Swedish Agency for Marine and Water Management (HaV) and the National plan for negotiation of Swedish hydropower (NAP). The Water Information System (VISS) and data from the Water authorities (Vattenmyndigheten) will also provide valuable information about lack of connectivity and suggested restoration efforts as well as the environmental quality standards (Miljökvalitetsnorm, MKN) for each watercourse. The output layer will show hydropower facilities in relation to suggested restoration measures and environmental quality standards and if the watercourse has been classified as heavily modified water (Kraftigt Modifierat Vatten, KMV).
+
+## The national plan
+
+*As of november 2024, the current affairs of the National plan is as follows:*
+
+## Data layers available in Sweden
+
+Unfortunately, no information can be retrieved from the Swedish Agency for Marine and Water Management (HaV) due to classified information. Anders Skarstedt, which is our contact person at HaV for this project, is not able to give us information on what objects are included in the National plan. 
+
+VISS contains "connectivity assessments" which range from XXX to YYY for HOW MANY OF THE WATER OCCURRENCES? This measurement is based on the difference on what anadromous fish species *should* be there and which actualyl are present. Therefore it's not a measurement that bears any information about real connectivity, but instead *infers* connectivity based on the presence and absence of migrating species (REF).
+
+Other databases with barrier data include: (i) the Barrier database (Vandringshinderdatabasen; Länsstyrelserna), (ii) SMHI dam registry (Dammregistret; Swedish Meteorological and Hydrological Institute), and (iii) Measures in water (Åtgärder i Vatten; Länsstyrelserna). All three databases include information not available in the other three, and are thus necessary compliments to each other. 
+
+### How to proceed
+
+As we lack information about what hydropower plants are included in the National plan, we retrieved and combined barrier data from three databases on barriers in Sweden. 
+
+### The consolidated barrier layer
+
+```{r echo = F, fig.width=10, fig.height=10}
+
+dam_layer <- read_sf("data/dam_layer_light.shp")
+
+#dam_layer_light <- dam_layer[,-c(10:100)]
+#dam_layer_light$MERGE_SRC <- dam_layer$MERGE_SRC
+
+#st_write(dam_layer_light, dsn = "data/dam_layer_light.shp")
+
+dam_layer_wgs84 <- st_transform(dam_layer, crs = 4326) 
+
+#ggplot(data = dam_layer) + geom_sf()
+
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+               "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+
+pal <- colorFactor(
+  palette = c("blue", "orange"),
+  domain = dam_layer_wgs84$MERGE_SRC
+)
+
+
+#pal <- colorFactor(palette = "Set1", domain = sf_points$MERGE_SRC)
+
+leaflet() %>% addTiles() %>% 
+  addCircleMarkers(data = dam_layer_wgs84, radius = 3, stroke = F, color = ~pal(MERGE_SRC), popup = ~ paste0(MERGE_SRC)) %>%
+    # Add custom legend for the groups
+  addLegend(
+    position = "bottomright",
+    colors = c("blue", "orange"),     # Colors for each group
+    labels = c("Vandringshinderdatabasen", "SMHI"),       # Labels for each group
+    title = "Källa",                 # Title for the legend
+    opacity = 1
+  )
+
+```
+
+
+```{r, echo = F}
+
+# Med dammtyper!
+
+
+
+
+```
+
+
+
+
